@@ -21,14 +21,14 @@ void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::Key
         }
         else
         {
-            normType = cv::NORM_HAMMING;
+            normType = cv::NORM_HAMMING2;
 
         }
         matcher = cv::BFMatcher::create(normType, crossCheck);
     }
     else if (matcherType.compare("MAT_FLANN") == 0)
     {
-        if (descSource.type() != CV_32F|| descRef.type() != CV_32F)
+        if ((descSource.type() != CV_32F)|| (descRef.type() != CV_32F))
         {
             descSource.convertTo(descSource, CV_32F);
             descRef.convertTo(descRef, CV_32F);
@@ -60,9 +60,10 @@ void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::Key
 }
 
 // Use one of several types of state-of-art descriptors to uniquely identify keypoints
-void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors, string descriptorType)
+float descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors, string descriptorType)
 {
     // select appropriate descriptor BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+    float computationTime;
     cv::Ptr<cv::DescriptorExtractor> extractor;
     if (descriptorType.compare("BRISK") == 0)
     {
@@ -75,7 +76,7 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
     }
     else if(descriptorType.compare("BRIEF") == 0)
     {
-        extractor = cv::xfeatures2d::BriefDescriptorExtractor::create();
+        extractor = cv::xfeatures2d::BriefDescriptorExtractor::create(32);
     }
     else if(descriptorType.compare("ORB") == 0)
     {
@@ -91,7 +92,7 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
     }
     else if(descriptorType.compare("SIFT") == 0)
     {
-        extractor = cv::xfeatures2d::SIFT::create();
+        extractor = cv::xfeatures2d::SiftDescriptorExtractor::create();
     }
 
     // perform feature description
@@ -99,6 +100,8 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
     extractor->compute(img, keypoints, descriptors);
     t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
     cout << descriptorType << " descriptor extraction in " << 1000 * t / 1.0 << " ms" << endl;
+    computationTime = 1000 * t / 1.0;
+    return computationTime;
 }
 
 // Detect keypoints in image using the traditional Shi-Thomasi detector
@@ -135,70 +138,43 @@ float detKeypointsModern(vector<cv::KeyPoint> &keypoints, cv::Mat &img, string d
         cout << detectorType <<" detection witn n = " << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
         computationTime = 1000 * t / 1.0;
     }
-    else if (detectorType.compare("HARRIS") == 0)
+    else 
     {
-        detector = cv::xfeatures2d::HarrisLaplaceFeatureDetector::create();
+        if (detectorType.compare("HARRIS") == 0)
+        {
+            detector = cv::xfeatures2d::HarrisLaplaceFeatureDetector::create();
+            
+        }
+        else if (detectorType.compare("FAST") == 0)
+        {
+            int threshold = 30;
+            bool bNMS = true;
+            cv::FastFeatureDetector::DetectorType type = cv::FastFeatureDetector::TYPE_9_16;
+            detector = cv::FastFeatureDetector::create(threshold, bNMS, type);
+        }
+        else if (detectorType.compare("BRISK") == 0)
+        {
+            detector = cv::BRISK::create();//threshold, octaves, patternScale);
+        }
+        else if (detectorType.compare("ORB") == 0)
+        {
+            detector = cv::ORB::create();
+        }
+        else if (detectorType.compare("AKAZE") == 0)
+        {
+            detector = cv::AKAZE::create();
+        }
+        else if (detectorType.compare("SIFT") == 0)
+        {
+            detector = cv::xfeatures2d::SIFT::create();      
+        }// compute detector parameters based on image size 
         double t = (double)cv::getTickCount();
         detector->detect(img, keypoints);
         t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
         cout << detectorType <<" detection witn n = " << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
         computationTime = 1000 * t / 1.0;
-    }
-    else if (detectorType.compare("FAST") == 0)
-    {
-        int threshold = 30;
-        bool bNMS = true;
-        cv::FastFeatureDetector::DetectorType type = cv::FastFeatureDetector::TYPE_9_16;
-        detector = cv::FastFeatureDetector::create(threshold, bNMS, type);
-        double t = (double)cv::getTickCount();
-        detector->detect(img, keypoints);
-        t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-        cout << detectorType <<" detection witn n = " << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-        computationTime = 1000 * t / 1.0;
-    }
-    else if (detectorType.compare("BRISK") == 0)
-    {
-        // int threshold = 30;
-        // int octaves = 3;
-        // float patternScale = 1.0f;
-        detector = cv::BRISK::create();//threshold, octaves, patternScale);
-        double t = (double)cv::getTickCount();
-        detector->detect(img, keypoints);
-        t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-        cout << detectorType <<" detection witn n = " << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-        computationTime = 1000 * t / 1.0;
-    }
-    else if (detectorType.compare("ORB") == 0)
-    {
-        detector = cv::ORB::create();
-        double t = (double)cv::getTickCount();
-        detector->detect(img, keypoints);
-        t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-        cout << detectorType <<" detection witn n = " << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-        computationTime = 1000 * t / 1.0;
-    }
-    else if (detectorType.compare("AKAZE") == 0)
-    {
-        detector = cv::AKAZE::create();
-        double t = (double)cv::getTickCount();
-        detector->detect(img, keypoints);
-        t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-        cout << detectorType <<" detection witn n = " << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-        computationTime = 1000 * t / 1.0;
-    }
-    else if (detectorType.compare("SIFT") == 0)
-    {
-        detector = cv::xfeatures2d::SIFT::create();
-        double t = (double)cv::getTickCount();        
-        detector->detect(img, keypoints);
-        t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-        cout << detectorType <<" detection witn n = " << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-        computationTime = 1000 * t / 1.0;
-        
-
-    }// compute detector parameters based on image size 
     
-    
+    }
     // visualize results
     if (bVis)
     {

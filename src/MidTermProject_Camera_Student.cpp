@@ -37,7 +37,7 @@ int main(int argc, const char *argv[])
 
     // misc
     int dataBufferSize = 2;       // no. of images which are held in memory (ring buffer) at the same time
-    vector<DataFrame> dataBuffer; // list of data frames which are held in memory at the same time
+    // vector<DataFrame> dataBuffer; // list of data frames which are held in memory at the same time
     bool bVis = false;            // visualize results
     vector<string> detectorType = {  "FAST", "BRISK", "ORB", "AKAZE", "SIFT", "HARRIS"};
     ofstream detectorFile;
@@ -46,13 +46,18 @@ int main(int argc, const char *argv[])
     vector<string> descriptorType = {"BRISK","FREAK", "BRIEF", "ORB" };
     ofstream descriptorFile;
     descriptorFile.open("task8_task9.csv");
-    descriptorFile << "Descriptor Type, DetectorType, #keypoints, Detection Time (ms)\n";
+    descriptorFile << "Detector Type, Descriptor Type, averageKeypointsDetectors, averageKeypointsDescriptors,  averageDetectorsDetectionTime (ms), averageTotalDetectionTime (ms)\n";
 
     /* MAIN LOOP OVER ALL IMAGES */
     for(string detectorT: detectorType)
     {
         for(string descriptorT: descriptorType)
         {
+            auto keypointsDetectors = 0;
+            auto keypointsDescriptors = 0;
+            float averageDetectorsDetectionTime = 0;
+            float averageTotalDetectionTime = 0;
+            vector<DataFrame> dataBuffer; // Redefining dataBuffer helped to fix the issue of random error/crashing (last image of previous detector goes as descRef for new detector)
             for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
             {
                 /* LOAD IMAGE INTO BUFFER */
@@ -100,9 +105,11 @@ int main(int argc, const char *argv[])
                 //// TASK MP.2 -> add the following keypoint detectors in file matching2D.cpp and enable string-based selection based on detectorType
                 //// -> HARRIS, FAST, BRISK, ORB, AKAZE, SIFT
 
-                float computationTime;
-                computationTime = detKeypointsModern(keypoints, imgGray, detectorT ,false);
-                detectorFile << detectorT+","+to_string(keypoints.size())+","+to_string(computationTime)+"\n";
+                float computationTimeDetector;
+                computationTimeDetector = detKeypointsModern(keypoints, imgGray, detectorT ,false);
+                keypointsDetectors = keypointsDetectors + keypoints.size();
+                averageDetectorsDetectionTime = averageDetectorsDetectionTime + computationTimeDetector;
+                
         
                 
                 //// EOF STUDENT ASSIGNMENT
@@ -154,21 +161,7 @@ int main(int argc, const char *argv[])
                 //// -> BRIEF, ORB, FREAK, AKAZE, SIFT
 
                 cv::Mat descriptors;
-                // string descriptorType = "AKAZE"; // BRIEF, ORB, FREAK, AKAZE, SIFT
-                // if(detectorT.compare("SHITOMASI")==0)
-                // {
-                //     if((descriptorT.compare("BRIEF")==0) || (descriptorT.compare("ORB")==0) || (descriptorT.compare("AKAZE")==0))
-                //     {
-                //         break;
-                //     }
-                // }
-                // if(detectorT.compare("HARRIS")==0)
-                // {
-                //     if((descriptorT.compare("BRIEF")==0) )//|| (descriptorT.compare("AKAZE")==0) )
-                //     {
-                //         break;
-                //     }
-                // }
+
                 if(detectorT.compare("SIFT")==0)
                 {
                     if((descriptorT.compare("ORB")==0) )
@@ -176,7 +169,9 @@ int main(int argc, const char *argv[])
                         break;
                     }
                 }
-                descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorT);
+                float computationTimeDescriptor = descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorT);
+                keypointsDescriptors = keypointsDescriptors + keypoints.size();
+                averageTotalDetectionTime = averageTotalDetectionTime + computationTimeDetector+ computationTimeDescriptor;
                 //// EOF STUDENT ASSIGNMENT
 
                 // push descriptors for current frame to end of data buffer
@@ -192,10 +187,6 @@ int main(int argc, const char *argv[])
                     string selectorType = "SEL_KNN";      // SEL_NN, SEL_KNN
                     string descriptorType ="DES_BINARY"; // DES_BINARY, DES_HOG
                     vector<cv::DMatch> matches;
-                    if (descriptorT.compare("SIFT") == 0)
-                    {
-                        descriptorT = "DES_HOG";
-                    }
 
                     //// STUDENT ASSIGNMENT
                     //// TASK MP.5 -> add FLANN matching in file matching2D.cpp
@@ -227,14 +218,17 @@ int main(int argc, const char *argv[])
                         cv::namedWindow(windowName, 7);
                         cv::imshow(windowName, matchImg);
                         cout << "Press key to continue to next image" << endl;
-                        // cv::waitKey(0); // wait for key to be pressed
+                        cv::waitKey(0); // wait for key to be pressed
                     }
                     bVis = false;
                 }
 
             }
+            detectorFile << detectorT+","+to_string(keypointsDetectors/10)+","+to_string(averageDetectorsDetectionTime/10)+"\n";
+            descriptorFile << detectorT + "," + descriptorT+","+to_string(keypointsDetectors/10)+","+to_string(keypointsDescriptors/10) +","+to_string(averageDetectorsDetectionTime/10) +","+to_string(averageTotalDetectionTime/10)+"\n";            
         }
 
+        
         
     }
     detectorFile.close();

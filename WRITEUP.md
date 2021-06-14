@@ -23,4 +23,4 @@ FAST	 BRIEF	    1787	            149	                108	        1.2754	        
 FAST	 ORB	    1787	            149	                106	        1.51969	                         2.974102
 FAST	 BRISK	    1787	            149	                85	        1.578101	                     3.170276
 FAST Detector with BRIEF/ORB/BRISK provides best overall performance since it gives more avgMatches in less time below 3.17ms for 3 different Descriptor. 
-Speed of processing will be important criteria I would consider and next thing will be important is Number of matches.
+Speed of processing will be important criteria I would consider and next thing will be important is Number of matches.![Detector_Descriptor](https://user-images.githubusercontent.com/46629608/121829565-e7212c80-cc90-11eb-8da6-d128f9658a86.PNG)

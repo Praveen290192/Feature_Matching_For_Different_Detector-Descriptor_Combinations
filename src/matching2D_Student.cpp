@@ -5,12 +5,13 @@ using namespace std;
 
 
 // Find best matches for keypoints in two camera images based on several matching methods
-void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::KeyPoint> &kPtsRef, cv::Mat &descSource, cv::Mat &descRef,
+float matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::KeyPoint> &kPtsRef, cv::Mat &descSource, cv::Mat &descRef,
                       std::vector<cv::DMatch> &matches, std::string descriptorType, std::string matcherType, std::string selectorType)
 {
     // configure matcher
     bool crossCheck = false;
     cv::Ptr<cv::DescriptorMatcher> matcher;
+    double t = (double)cv::getTickCount();
 
     if (matcherType.compare("MAT_BF") == 0)
     {
@@ -57,6 +58,9 @@ void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::Key
            }
        }
     }
+    t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+    cout << " Match Type:"<< matcherType << ", Descriptor Type:" << descriptorType << ", Selector Type:"<< selectorType << " "<< matches.size() <<" mathces in " << 1000 * t / 1.0 << " ms" << endl;
+
 }
 
 // Use one of several types of state-of-art descriptors to uniquely identify keypoints
